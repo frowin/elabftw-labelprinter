@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    :root {
+      --bg: #ffffff;
+      --fg: #1a1a1a;
+      --muted: #6c757d;
+      --border: #dee2e6;
+      --accent: #0d6efd;
+      --success: #198754;
+      --danger: #dc3545;
+      --surface: #f8f9fa;
+      --radius: 6px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 428px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 13px;
+      color: var(--fg);
+      background: var(--bg);
+      padding: 16px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .header h1 {
+      font-size: 15px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .header h1 svg { flex-shrink: 0; }
+    .conn-badge {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .conn-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--danger);
+      transition: background .2s;
+    }
+    .conn-dot.on { background: var(--success); }
+
+    .no-page {
+      text-align: center;
+      padding: 30px 10px;
+      color: var(--muted);
+    }
+    .no-page svg { margin-bottom: 8px; opacity: .5; }
+
+    .config-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      color: var(--muted);
+      margin-bottom: 3px;
+    }
+    select {
+      width: 100%;
+      padding: 5px 8px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 12px;
+      background: var(--bg);
+      color: var(--fg);
+      cursor: pointer;
+    }
+
+    .preview-box {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 60px;
+      padding: 12px;
+      background: var(--surface);
+      border: 1px dashed var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 10px;
+    }
+    #previewCanvas {
+      max-width: 100%;
+      image-rendering: pixelated;
+    }
+
+    .status {
+      font-size: 11px;
+      color: var(--muted);
+      min-height: 16px;
+      margin-bottom: 12px;
+    }
+    .status.error { color: var(--danger); }
+    .status.success { color: var(--success); }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .actions .spacer { flex: 1; }
+
+    button {
+      padding: 6px 14px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--fg);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    button:hover { background: var(--surface); }
+    button:disabled { opacity: .45; cursor: default; }
+    button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    button.primary:hover { background: #0b5ed7; }
+    button.success { background: var(--success); color: #fff; border-color: var(--success); }
+    button.success:hover { background: #157347; }
+    button.danger-outline { color: var(--danger); border-color: var(--danger); }
+    button.danger-outline:hover { background: #fff5f5; }
+
+    .entity-info {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 12px;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .entity-info .tag {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 1px 6px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+      Label Printer
+    </h1>
+    <div class="conn-badge">
+      <div class="conn-dot" id="connDot"></div>
+      <span id="connLabel">Disconnected</span>
+    </div>
+  </div>
+
+  <div id="noPage" class="no-page" style="display:none;">
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <p>Open an eLabFTW resource page first.</p>
+  </div>
+
+  <div id="mainContent" style="display:none;">
+    <div class="entity-info">
+      <span class="tag" id="entityType"></span>
+      <span id="entityTitle"></span>
+    </div>
+
+    <div class="config-row">
+      <div>
+        <label for="labelSelect">Label size</label>
+        <select id="labelSelect"></select>
+      </div>
+      <div>
+        <label for="layoutSelect">Layout</label>
+        <select id="layoutSelect"></select>
+      </div>
+    </div>
+
+    <div class="preview-box">
+      <canvas id="previewCanvas"></canvas>
+    </div>
+
+    <p class="status" id="statusText"></p>
+
+    <div class="actions">
+      <button id="previewBtn" title="Refresh preview">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+        Preview
+      </button>
+      <span class="spacer"></span>
+      <button id="disconnectBtn" class="danger-outline" style="display:none;">Disconnect</button>
+      <button id="connectBtn" class="primary">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6.5 6.5l11 11M17.5 6.5L12 12l-1.5 5.5L6.5 6.5"/><path d="M12 2v4M12 18v4"/></svg>
+        Connect
+      </button>
+      <button id="printBtn" class="success" disabled>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Print
+      </button>
+    </div>
+  </div>
+
+  <script src="dist/popup.js"></script>
+</body>
+</html>

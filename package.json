@@ -1,0 +1,14 @@
+{
+  "name": "elabftw-niimbot-label-printer",
+  "private": true,
+  "scripts": {
+    "build": "node build.mjs",
+    "watch": "node build.mjs --watch"
+  },
+  "dependencies": {
+    "@mmote/niimbluelib": "0.0.1-alpha.36"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}
