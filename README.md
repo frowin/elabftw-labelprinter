@@ -26,4 +26,8 @@ npm run watch
 
 
 ## Author
-Frowin Ellermann
+[Frowin Ellermann](https://frowinellermann.com)
+
+## Acknowledgements
+- [eLabFTW](https://www.elabftw.net) – open-source electronic lab notebook this extension integrates with
+- [@mmote/niimbluelib](https://github.com/MultiMote/niimbluelib) – Niimbot BLE communication library
