@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "eLabFTW Label Printer (Niimbot)",
-  "version": "1.0.13",
+  "version": "1.0.14",
   "description": "Print sample labels on Niimbot B18/B21 printers from eLabFTW resource pages via Bluetooth.",
   "permissions": [
     "activeTab"
