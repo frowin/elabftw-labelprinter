@@ -53,7 +53,7 @@ function titleLines(ctx: CanvasRenderingContext2D, text: string, maxWidth: numbe
 export const layoutConfigs: LayoutConfig[] = [
   {
     id: 'qr-right-detailed',
-    name: 'QR + detailed',
+    name: 'QR + Text',
     description: 'QR code left, with title, category, owner and date.',
     render(ctx, data, qrImg, area) {
       const m = area.margin;
@@ -169,30 +169,64 @@ export const layoutConfigs: LayoutConfig[] = [
   {
     id: 'text-only',
     name: 'Text only',
-    description: 'Title, ID and date — no QR code, full width.',
+    description: 'Title, category, owner and date — no QR code.',
     render(ctx, data, _qrImg, area) {
       const m = area.margin;
-      const textW = area.width - m * 2;
-      const lineH = Math.min(16, Math.floor((area.height - m * 2) / 4));
-      const titleFont = `bold ${lineH + 2}px Arial, sans-serif`;
-      const bodyFont = `${lineH}px Arial, sans-serif`;
-      const monoFont = `${lineH - 2}px monospace`;
+      const labelH = area.height - m * 2;
 
-      let y = m + lineH + 2;
+      // Rotated ID band on the left (like qr-right-detailed, but without QR)
+      const idBandWidth = Math.min(20, Math.max(10, labelH * 0.25));
+      const textX = m + idBandWidth + 4;
+      const textW = area.width - textX - m;
+      const availableH = labelH;
+      const lineH = 16;
+      const titleFont = `bold ${lineH}px Arial, sans-serif`;
+      const bodyFont = `${lineH - 2}px Arial, sans-serif`;
+      const dateFont = `${lineH - 4}px Arial, sans-serif`;
+
+      // Draw rotated ID
+      const idText = `#${data.id}`;
+      const fontSize = 17;
+      ctx.save();
+      ctx.fillStyle = '#000';
+      ctx.font = `${fontSize}px monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.translate(m + idBandWidth / 2+4, m + labelH / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillText(idText, 0, 0);
+      ctx.restore();
+
+      ctx.font = titleFont;
+      const titleLinesArr = titleLines(ctx, data.title, textW, titleFont);
+      const totalHeight =
+        titleLinesArr.length * (lineH + 1) +
+        (data.category_title ? lineH - 2 : 0) +
+        (data.fullname ? lineH - 2 : 0) +
+        lineH;
+      const startY = m + (availableH - totalHeight) / 2 + lineH;
+
+      let y = startY;
       ctx.fillStyle = '#000';
 
       ctx.font = titleFont;
-      ctx.fillText(fitText(ctx, data.title, textW, titleFont), m, y);
-      y += lineH + 4;
+      for (const line of titleLinesArr) {
+        ctx.fillText(line, textX, y);
+        y += lineH + 1;
+      }
 
       ctx.font = bodyFont;
-      ctx.fillText(fitText(ctx, `${data.custom_id || '#' + data.id}  |  ${data.date}`, textW, bodyFont), m, y);
-      y += lineH + 2;
-
-      if (y + lineH <= area.height - m) {
-        ctx.font = monoFont;
-        ctx.fillText(fitText(ctx, data.elabid.substring(0, 30), textW, monoFont), m, y);
+      if (data.category_title) {
+        ctx.fillText(fitText(ctx, data.category_title, textW, bodyFont), textX, y);
+        y += lineH - 2;
       }
+
+      if (data.fullname) {
+        ctx.fillText(fitText(ctx, data.fullname, textW, bodyFont), textX, y);
+        y += lineH - 2;
+      }
+
+      ctx.fillText(fitText(ctx, data.date, textW, dateFont), textX, y);
     },
   },
 ];
