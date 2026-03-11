@@ -53,17 +53,20 @@ For Label size 14 × 50 mm labels. While you can select other label sizes, the p
 
 ### QR + Text
 
-![QR + detailed preset](./media/preset1.png)
+<img src="./media/preset1.png" alt="QR + Text preset" width="500" />
+
 QR code left, with title, category, owner and date.
 
 ### QR only
 
-![QR only preset](./media/preset2.png)
+<img src="./media/preset2.png" alt="QR only preset" width="500" />
+
 Large centered QR code.
 
 ### Text only
 
-![Text only preset](./media/preset3.png)
+<img src="./media/preset3.png" alt="Text only preset" width="500" />
+
 Title, category, owner and date
 
 
