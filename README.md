@@ -12,7 +12,7 @@ Currently, there are three presets for 14 × 50 mm labels.
 
 1. [Chrome browser](https://www.google.com/chrome/)
 2. [Node.js](https://nodejs.org/en/download)
-3. A NIIMBOT printer (tested with NIIMBOT N1)
+3. A NIIMBOT printer (tested with NIIMBOT N18)
 
 ## Build
 
@@ -77,3 +77,7 @@ Title, category, owner and date
 ## Acknowledgements
 - [eLabFTW](https://www.elabftw.net) – open-source electronic lab notebook this extension integrates with
 - [@mmote/niimbluelib](https://github.com/MultiMote/niimbluelib) – Niimbot BLE communication library
+
+## Licence
+
+[MIT License](./LICENSE)
