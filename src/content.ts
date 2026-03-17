@@ -180,7 +180,12 @@ async function disconnectPrinter() {
 async function doPreview() {
   setStatus('Rendering preview\u2026');
   try {
-    const data = await fetchEntityData();
+    const baseData = await fetchEntityData();
+    const remarkEl = document.getElementById('nlpRemark') as HTMLInputElement | null;
+    const data: EntityData = {
+      ...baseData,
+      remark: (remarkEl?.value ?? '').trim() || null,
+    };
     const labelSel = (document.getElementById('nlpLabelSel') as HTMLSelectElement).value;
     const layoutSel = (document.getElementById('nlpLayoutSel') as HTMLSelectElement).value;
     const label = getLabelConfig(labelSel);
@@ -213,7 +218,12 @@ async function doPrint() {
     }
 
     setStatus('Preparing label\u2026');
-    const data = await fetchEntityData();
+    const baseData = await fetchEntityData();
+    const remarkEl = document.getElementById('nlpRemark') as HTMLInputElement | null;
+    const data: EntityData = {
+      ...baseData,
+      remark: (remarkEl?.value ?? '').trim() || null,
+    };
     const labelSel = (document.getElementById('nlpLabelSel') as HTMLSelectElement).value;
     const layoutSel = (document.getElementById('nlpLayoutSel') as HTMLSelectElement).value;
     const label = getLabelConfig(labelSel);
@@ -275,7 +285,8 @@ function createPanel(): HTMLElement {
       .nlp-body { padding: 16px 18px; }
       .nlp-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
       .nlp-body label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; color: #6c757d; margin-bottom: 3px; }
-      .nlp-body select { width: 100%; padding: 5px 8px; border: 1px solid #dee2e6; border-radius: 6px; font-size: 12px; }
+      .nlp-body select,
+      .nlp-body input[type="text"] { width: 100%; padding: 5px 8px; border: 1px solid #dee2e6; border-radius: 6px; font-size: 12px; }
       .nlp-preview { display: flex; justify-content: center; align-items: center; min-height: 50px; padding: 12px; background: #f8f9fa; border: 1px dashed #dee2e6; border-radius: 6px; margin-bottom: 8px; }
       .nlp-preview canvas { max-width: 100%; image-rendering: pixelated; }
       .nlp-status { font-size: 11px; color: #6c757d; min-height: 16px; margin-bottom: 12px; }
@@ -303,6 +314,10 @@ function createPanel(): HTMLElement {
       <div class="nlp-row">
         <div><label for="nlpLabelSel">Label size</label><select id="nlpLabelSel"></select></div>
         <div><label for="nlpLayoutSel">Layout</label><select id="nlpLayoutSel"></select></div>
+      </div>
+      <div style="margin-bottom: 10px;">
+        <label for="nlpRemark">Note</label>
+        <input type="text" id="nlpRemark" placeholder="Optional short note" />
       </div>
       <div class="nlp-preview"><canvas id="nlpCanvas"></canvas></div>
       <p class="nlp-status" id="nlpStatus"></p>
@@ -337,6 +352,7 @@ function showPanel() {
   // Populate selects
   const labelSel = document.getElementById('nlpLabelSel') as HTMLSelectElement;
   const layoutSel = document.getElementById('nlpLayoutSel') as HTMLSelectElement;
+  const remarkInput = document.getElementById('nlpRemark') as HTMLInputElement | null;
   labelConfigs.forEach(c => labelSel.add(new Option(c.name, c.id)));
   layoutConfigs.forEach(c => layoutSel.add(new Option(`${c.name} \u2014 ${c.description}`, c.id)));
 
@@ -347,6 +363,9 @@ function showPanel() {
 
   labelSel.addEventListener('change', () => { localStorage.setItem('niimbot_label', labelSel.value); doPreview(); });
   layoutSel.addEventListener('change', () => { localStorage.setItem('niimbot_layout', layoutSel.value); doPreview(); });
+  if (remarkInput) {
+    remarkInput.addEventListener('blur', () => { doPreview(); });
+  }
 
   document.getElementById('nlpClose')!.addEventListener('click', hidePanel);
   overlay.addEventListener('click', hidePanel);

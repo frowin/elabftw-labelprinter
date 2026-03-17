@@ -18,8 +18,9 @@ const disconnectBtn = document.getElementById('disconnectBtn')!;
 const printBtn = document.getElementById('printBtn') as HTMLButtonElement;
 const connDot = document.getElementById('connDot')!;
 const connLabel = document.getElementById('connLabel')!;
+const remarkInput = document.getElementById('remarkInput') as HTMLInputElement | null;
 
-let client: NiimbotBluetoothClient | null = null;
+let client: NiimbotBluetoothClient | null = null; 
 let cachedData: EntityData | null = null;
 let cachedQrDataUrl: string | null = null;
 let activeTabId: number | null = null;
@@ -63,9 +64,14 @@ async function fetchQrImage(size: number): Promise<HTMLImageElement | null> {
 async function doPreview() {
   setStatus('Rendering preview\u2026');
   try {
-    const data = cachedData ?? await fetchEntityData();
-    if (!data) return;
-    cachedData = data;
+    const baseData = cachedData ?? await fetchEntityData();
+    if (!baseData) return;
+    cachedData = baseData;
+
+    const data: EntityData = {
+      ...baseData,
+      remark: (remarkInput?.value ?? '').trim() || null,
+    };
 
     const label = getLabelConfig(labelSelect.value);
     const layout = getLayoutConfig(layoutSelect.value);
@@ -105,6 +111,11 @@ previewBtn.addEventListener('click', () => {
   cachedQrDataUrl = null;
   doPreview();
 });
+if (remarkInput) {
+  remarkInput.addEventListener('blur', () => {
+        doPreview();
+  });
+}
 
 connectBtn.addEventListener('click', async () => {
   // Check Bluetooth availability first
@@ -162,8 +173,13 @@ printBtn.addEventListener('click', async () => {
   setStatus('Sending to printer\u2026');
 
   try {
-    const data = cachedData ?? await fetchEntityData();
-    if (!data) return;
+    const baseData = cachedData ?? await fetchEntityData();
+    if (!baseData) return;
+
+    const data: EntityData = {
+      ...baseData,
+      remark: (remarkInput?.value ?? '').trim() || null,
+    };
 
     const label = getLabelConfig(labelSelect.value);
     const layout = getLayoutConfig(layoutSelect.value);

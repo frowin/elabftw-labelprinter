@@ -6,6 +6,7 @@ export interface EntityData {
   custom_id: string | null;
   category_title: string | null;
   fullname: string | null;
+  remark?: string | null;
 }
 
 export interface LayoutArea {
@@ -113,7 +114,20 @@ export const layoutConfigs: LayoutConfig[] = [
         ctx.fillText(fitText(ctx, data.fullname, textW, bodyFont), textX, y);
         y += lineH-2;
       }
+      // Datum links unten
+      ctx.font = dateFont;
+      ctx.textAlign = 'left';
       ctx.fillText(fitText(ctx, data.date, textW, dateFont), textX, y);
+
+      // Bemerkung rechts unten (gleiche Höhe wie Datum)
+      if (data.remark) {
+        const remarkFont = `bold ${lineH}px Arial, sans-serif`;
+        const remarkMaxWidth = textW;
+        const remarkText = fitText(ctx, data.remark, remarkMaxWidth, remarkFont);
+        ctx.font = remarkFont;
+        ctx.textAlign = 'right';
+        ctx.fillText(remarkText, area.width - m - 8, y);
+      }
     },
   },
   {
@@ -226,7 +240,20 @@ export const layoutConfigs: LayoutConfig[] = [
         y += lineH - 2;
       }
 
+      // Datum links unten
+      ctx.font = dateFont;
+      ctx.textAlign = 'left';
       ctx.fillText(fitText(ctx, data.date, textW, dateFont), textX, y);
+
+      // Bemerkung rechts unten (gleiche Höhe wie Datum)
+      if (data.remark) {
+        const remarkFont = `bold ${lineH}px Arial, sans-serif`;
+        const remarkMaxWidth = textW;
+        const remarkText = fitText(ctx, data.remark, remarkMaxWidth, remarkFont);
+        ctx.font = remarkFont;
+        ctx.textAlign = 'right';
+        ctx.fillText(remarkText, area.width - m - 8, y);
+      }
     },
   },
 ];
