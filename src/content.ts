@@ -4,7 +4,7 @@
  */
 import { NiimbotBluetoothClient, ImageEncoder } from '@mmote/niimbluelib';
 import { labelConfigs, getLabelConfig, getLabelCanvasSize } from './label-configs';
-import { layoutConfigs, getLayoutConfig, EntityData, LayoutArea } from './layout-configs';
+import { getLayoutConfig, getLayoutsForLabel, EntityData } from './layout-configs';
 
 // ── Page detection ──
 function getEntity() {
@@ -59,7 +59,7 @@ function makeLabelCanvas(data: EntityData, labelId: string, layoutId: string, qr
   const ctx = c.getContext('2d')!;
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, width, height);
-  layout.render(ctx, data, qrImg, { width, height, margin: label.margin } as LayoutArea);
+  layout.render(ctx, data, qrImg, { width, height, margin: label.margin, widthMm: label.widthMm });
   return c;
 }
 
@@ -315,7 +315,7 @@ function createPanel(): HTMLElement {
         <div><label for="nlpLabelSel">Label size</label><select id="nlpLabelSel"></select></div>
         <div><label for="nlpLayoutSel">Layout</label><select id="nlpLayoutSel"></select></div>
       </div>
-      <div style="margin-bottom: 10px;">
+      <div id="nlpRemarkField" style="margin-bottom: 10px;">
         <label for="nlpRemark">Note</label>
         <input type="text" id="nlpRemark" placeholder="Optional short note" />
       </div>
@@ -353,16 +353,44 @@ function showPanel() {
   const labelSel = document.getElementById('nlpLabelSel') as HTMLSelectElement;
   const layoutSel = document.getElementById('nlpLayoutSel') as HTMLSelectElement;
   const remarkInput = document.getElementById('nlpRemark') as HTMLInputElement | null;
+  const remarkField = document.getElementById('nlpRemarkField');
   labelConfigs.forEach(c => labelSel.add(new Option(c.name, c.id)));
-  layoutConfigs.forEach(c => layoutSel.add(new Option(`${c.name} \u2014 ${c.description}`, c.id)));
 
   const savedLabel = localStorage.getItem('niimbot_label');
   const savedLayout = localStorage.getItem('niimbot_layout');
   if (savedLabel) labelSel.value = savedLabel;
-  if (savedLayout) layoutSel.value = savedLayout;
 
-  labelSel.addEventListener('change', () => { localStorage.setItem('niimbot_label', labelSel.value); doPreview(); });
-  layoutSel.addEventListener('change', () => { localStorage.setItem('niimbot_layout', layoutSel.value); doPreview(); });
+  function updateLayoutOptions(preferredLayout?: string | null) {
+    layoutSel.replaceChildren();
+    getLayoutsForLabel(labelSel.value).forEach(c => {
+      layoutSel.add(new Option(`${c.name} \u2014 ${c.description}`, c.id));
+    });
+    if (preferredLayout && Array.from(layoutSel.options).some(option => option.value === preferredLayout)) {
+      layoutSel.value = preferredLayout;
+    }
+  }
+
+  function updateRemarkVisibility() {
+    if (remarkField) {
+      remarkField.style.display = getLayoutConfig(layoutSel.value).supportsRemark ? '' : 'none';
+    }
+  }
+
+  updateLayoutOptions(savedLayout);
+  updateRemarkVisibility();
+
+  labelSel.addEventListener('change', () => {
+    localStorage.setItem('niimbot_label', labelSel.value);
+    updateLayoutOptions(layoutSel.value);
+    updateRemarkVisibility();
+    localStorage.setItem('niimbot_layout', layoutSel.value);
+    doPreview();
+  });
+  layoutSel.addEventListener('change', () => {
+    localStorage.setItem('niimbot_layout', layoutSel.value);
+    updateRemarkVisibility();
+    doPreview();
+  });
   if (remarkInput) {
     remarkInput.addEventListener('blur', () => { doPreview(); });
   }

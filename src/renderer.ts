@@ -25,7 +25,7 @@ export function renderLabel(
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, width, height);
 
-  const area: LayoutArea = { width, height, margin: label.margin };
+  const area: LayoutArea = { width, height, margin: label.margin, widthMm: label.widthMm };
   layout.render(ctx, data, qrImg, area);
   return canvas;
 }

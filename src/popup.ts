@@ -1,6 +1,6 @@
 import { NiimbotBluetoothClient, ImageEncoder } from '@mmote/niimbluelib';
 import { labelConfigs, getLabelConfig } from './label-configs';
-import { layoutConfigs, getLayoutConfig, EntityData } from './layout-configs';
+import { getLayoutConfig, getLayoutsForLabel, EntityData } from './layout-configs';
 import { renderLabel, renderPreview, loadImageFromDataUrl } from './renderer';
 
 // DOM refs
@@ -89,17 +89,29 @@ async function doPreview() {
 
 // Populate selects
 labelConfigs.forEach(c => labelSelect.add(new Option(c.name, c.id)));
-layoutConfigs.forEach(c => layoutSelect.add(new Option(`${c.name} \u2014 ${c.description}`, c.id)));
 
 // Restore last selection from localStorage
 const savedLabel = localStorage.getItem('niimbot_label');
 const savedLayout = localStorage.getItem('niimbot_layout');
 if (savedLabel) labelSelect.value = savedLabel;
-if (savedLayout) layoutSelect.value = savedLayout;
+
+function updateLayoutOptions(preferredLayout?: string | null) {
+  layoutSelect.replaceChildren();
+  getLayoutsForLabel(labelSelect.value).forEach(c => {
+    layoutSelect.add(new Option(`${c.name} \u2014 ${c.description}`, c.id));
+  });
+  if (preferredLayout && Array.from(layoutSelect.options).some(option => option.value === preferredLayout)) {
+    layoutSelect.value = preferredLayout;
+  }
+}
+
+updateLayoutOptions(savedLayout);
 
 labelSelect.addEventListener('change', () => {
   localStorage.setItem('niimbot_label', labelSelect.value);
   cachedQrDataUrl = null;
+  updateLayoutOptions(layoutSelect.value);
+  localStorage.setItem('niimbot_layout', layoutSelect.value);
   doPreview();
 });
 layoutSelect.addEventListener('change', () => {
@@ -118,9 +130,16 @@ if (remarkInput) {
 }
 
 connectBtn.addEventListener('click', async () => {
-  // Check Bluetooth availability first
+  // Check Web Bluetooth API support first
   if (!navigator.bluetooth) {
     setStatus('Web Bluetooth API not available. Use Chrome/Edge and check chrome://flags/#enable-web-bluetooth', 'error');
+    return;
+  }
+  if (typeof navigator.bluetooth.requestDevice !== 'function') {
+    setStatus(
+      'Web Bluetooth is partially available, but device picker is missing. On Linux use Chrome/Edge (not Firefox), avoid sandboxed browser packages (Snap/Flatpak), and enable experimental web platform features if needed.',
+      'error'
+    );
     return;
   }
   try {
@@ -148,6 +167,11 @@ connectBtn.addEventListener('click', async () => {
       setStatus('Bluetooth picker was closed. Make sure your printer is ON and in range, then try again.', 'error');
     } else if (msg.includes('NotFoundError')) {
       setStatus('No Niimbot printer found. Is the printer turned on? Check macOS Bluetooth permissions for Chrome.', 'error');
+    } else if (msg.includes('requestDevice')) {
+      setStatus(
+        'Browser does not expose Bluetooth device picker. On Linux use non-sandboxed Chrome/Edge and confirm Web Bluetooth is enabled.',
+        'error'
+      );
     } else {
       setStatus(`Connection failed: ${msg}`, 'error');
     }

@@ -13,12 +13,15 @@ export interface LayoutArea {
   width: number;
   height: number;
   margin: number;
+  widthMm: number;
 }
 
 export interface LayoutConfig {
   id: string;
   name: string;
   description: string;
+  labelIds?: string[];
+  supportsRemark?: boolean;
   render: (ctx: CanvasRenderingContext2D, data: EntityData, qrImg: HTMLImageElement | null, area: LayoutArea) => void;
 }
 
@@ -56,6 +59,7 @@ export const layoutConfigs: LayoutConfig[] = [
     id: 'qr-right-detailed',
     name: 'QR + Text',
     description: 'QR code left, with title, category, owner and date.',
+    supportsRemark: true,
     render(ctx, data, qrImg, area) {
       const m = area.margin;
       const qrSize = area.height - m * 2;
@@ -85,6 +89,11 @@ export const layoutConfigs: LayoutConfig[] = [
       const titleFont = `bold ${lineH}px Arial, sans-serif`;
       const bodyFont = `${lineH - 2}px Arial, sans-serif`;
       const dateFont = `${lineH - 4}px Arial, sans-serif`;
+
+      const gap = 1;
+      const showWriteBox = area.widthMm > 50;
+      const writeBoxSize = showWriteBox ? area.height-2*gap : 0;
+      const availableWr = showWriteBox ? writeBoxSize + 2*gap : 0;
 
       ctx.font = titleFont;
       const titleLinesArr = titleLines(ctx, data.title, textW, titleFont);
@@ -126,64 +135,147 @@ export const layoutConfigs: LayoutConfig[] = [
         const remarkText = fitText(ctx, data.remark, remarkMaxWidth, remarkFont);
         ctx.font = remarkFont;
         ctx.textAlign = 'right';
-        ctx.fillText(remarkText, area.width - m - 8, y);
+        ctx.fillText(remarkText, area.width - m - 8 - availableWr, y);
+      }
+
+      if (showWriteBox) {
+        const boxX = area.width - writeBoxSize;
+        ctx.save();
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 1;
+        // 0.5-Versatz, damit die 1px-Linie vollständig auf dem Canvas liegt
+        ctx.strokeRect(boxX + gap, gap, writeBoxSize - 2*gap, writeBoxSize - 2*gap);
+        ctx.restore();
       }
     },
   },
   {
     id: 'qr-only',
     name: 'QR only',
-    description: 'Large centered QR code.',
+    description: 'Multiple large QR codes.',
     render(ctx, data, qrImg, area) {
-      if (!qrImg) return;
+      const gap = 1;
 
-      const count = 4;
-      const gap = 1; // Abstand zwischen QR-Codes
+      if (qrImg) {
+        const idText = `#${data.id}`;
+        const idFontSize = 14;
 
-      const idText = `#${data.id}`;
-      const idFontSize = 14;
+        // QR so groß wie die Labelhöhe (minus Rand) — Anzahl ergibt sich aus der Breite
+        let qrSize = area.height - area.margin * 2;
+        let count = Math.floor((area.width + gap) / (qrSize + gap));
+        if (count < 1) {
+          count = 1;
+          qrSize = Math.min(qrSize, Math.max(1, area.width));
+        }
 
-      const availableW = area.width - gap * (count - 1);
-      const qrSize = area.height - area.margin * 2; // Math.floor(Math.min(cellW, maxQrH));
-      const cellW = qrSize + gap;
+        const cellW = qrSize + gap;
+        const qrY = 0;
+        const textY = qrY + qrSize - 4;
 
-      // QR ohne Margin oben (y = 0)
-      const qrY = 0;
-      const textY = qrY + qrSize -4;
+        for (let i = 0; i < count; i++) {
+          const cellX = i * cellW;
 
-      for (let i = 0; i < count; i++) {
-        const cellX = i * (cellW + gap);
-        const qrX = cellX + (cellW - qrSize) / 2;
+          ctx.drawImage(qrImg, cellX, qrY, qrSize, qrSize);
 
-        ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
-
-        ctx.save();
-        ctx.fillStyle = '#000';
-        ctx.font = `${idFontSize}px monospace`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'top';
-        ctx.fillText(idText, cellX + cellW / 2, textY);
-        ctx.restore();
-
-        // Vertikale Schnittmarke mittig im Gap (nicht nach dem letzten Code)
-        if (i < count) {
-          const markX = (i + 1) * cellW + i * gap + gap / 2;
           ctx.save();
-          ctx.strokeStyle = '#000';
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.moveTo(markX, 0);
-          ctx.lineTo(markX, area.height);
-          ctx.stroke();
+          ctx.fillStyle = '#000';
+          ctx.font = `${idFontSize}px monospace`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'top';
+          ctx.fillText(idText, cellX + qrSize / 2, textY);
           ctx.restore();
+
+          if (i < count - 1) {
+            const markX = cellX + qrSize + gap / 2;
+            ctx.save();
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(markX, 0);
+            ctx.lineTo(markX, area.height);
+            ctx.stroke();
+            ctx.restore();
+          }
         }
       }
+    },
+  },
+  {
+    id: 'cable-duplicate',
+    name: 'Cable — QR + ID/Titel',
+    description: 'Prints on both 37 mm sections',
+    labelIds: ['b18-cable-12.5x74+35'],
+    render(ctx, data, qrImg, area) {
+      const printableWidth = area.width * 74 / 109;
+      const sectionWidth = printableWidth / 2;
+      const m = area.margin;
+      const qrSize = area.height - m * 2;
+
+      for (let i = 0; i < 2; i++) {
+        const sectionX = i * sectionWidth;
+        const textX = sectionX + m + qrSize + 6;
+        const textW = Math.max(1, sectionWidth - (textX - sectionX) - m);
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(sectionX, 0, sectionWidth, area.height);
+        ctx.clip();
+
+        if (qrImg) {
+          ctx.drawImage(qrImg, sectionX + m, m, qrSize, qrSize);
+        }
+
+        ctx.fillStyle = '#000';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'alphabetic';
+        ctx.font = 'bold 15px Arial, sans-serif';
+        ctx.fillText(fitText(ctx, `#${data.id}`, textW, 'bold 15px Arial, sans-serif'), textX, 30);
+
+        const titleFont = 'bold 14px Arial, sans-serif';
+        const lines = titleLines(ctx, data.title, textW, titleFont).slice(0, 2);
+        ctx.font = titleFont;
+        lines.forEach((line, lineIndex) => {
+          ctx.fillText(fitText(ctx, line, textW, titleFont), textX, 52 + lineIndex * 17);
+        });
+
+        ctx.restore();
+      }
+
+      ctx.save();
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(sectionWidth, 0);
+      ctx.lineTo(sectionWidth, area.height);
+      ctx.stroke();
+      ctx.restore();
+
+      const adhesiveX = printableWidth;
+      const adhesiveWidth = area.width - adhesiveX;
+      const adhesiveHeight = area.height * 7 / 12.5;
+      const adhesiveY = (area.height - adhesiveHeight) / 2;
+      const hatchGap = 8;
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(adhesiveX, adhesiveY, adhesiveWidth, adhesiveHeight);
+      ctx.clip();
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 1;
+      for (let x = adhesiveX - adhesiveHeight; x < area.width; x += hatchGap) {
+        ctx.beginPath();
+        ctx.moveTo(x, adhesiveY + adhesiveHeight);
+        ctx.lineTo(x + adhesiveHeight, adhesiveY);
+        ctx.stroke();
+      }
+      ctx.restore();
     },
   },
   {
     id: 'text-only',
     name: 'Text only',
     description: 'Title, category, owner and date — no QR code.',
+    supportsRemark: true,
     render(ctx, data, _qrImg, area) {
       const m = area.margin;
       const labelH = area.height - m * 2;
@@ -198,6 +290,10 @@ export const layoutConfigs: LayoutConfig[] = [
       const bodyFont = `${lineH - 2}px Arial, sans-serif`;
       const dateFont = `${lineH - 4}px Arial, sans-serif`;
 
+      const gap = 1;
+      const showWriteBox = area.widthMm > 50;
+      const writeBoxSize = showWriteBox ? area.height-2*gap : 0;
+      const availableWr = showWriteBox ? writeBoxSize + 2*gap : 0;
       // Draw rotated ID
       const idText = `#${data.id}`;
       const fontSize = 17;
@@ -252,7 +348,17 @@ export const layoutConfigs: LayoutConfig[] = [
         const remarkText = fitText(ctx, data.remark, remarkMaxWidth, remarkFont);
         ctx.font = remarkFont;
         ctx.textAlign = 'right';
-        ctx.fillText(remarkText, area.width - m - 8, y);
+        ctx.fillText(remarkText, area.width - m - 8-availableWr, y);
+      }
+
+      if (showWriteBox) {
+        const boxX = area.width - writeBoxSize;
+        ctx.save();
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 1;
+        // 0.5-Versatz, damit die 1px-Linie vollständig auf dem Canvas liegt
+        ctx.strokeRect(boxX + gap, gap, writeBoxSize - 2*gap, writeBoxSize - 2*gap);
+        ctx.restore();
       }
     },
   },
@@ -260,4 +366,10 @@ export const layoutConfigs: LayoutConfig[] = [
 
 export function getLayoutConfig(id: string): LayoutConfig {
   return layoutConfigs.find(c => c.id === id) ?? layoutConfigs[0];
+}
+
+export function getLayoutsForLabel(labelId: string): LayoutConfig[] {
+  const labelSpecificLayouts = layoutConfigs.filter(c => c.labelIds?.includes(labelId));
+  if (labelSpecificLayouts.length > 0) return labelSpecificLayouts;
+  return layoutConfigs.filter(c => !c.labelIds);
 }
